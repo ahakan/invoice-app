@@ -25,7 +25,7 @@ DEPS = $(OBJECTS:.o=.d)
 COMPILE_FLAGS =
 INCLUDES = -I /usr/include
 # Space-separated pkg-config libraries used by this project
-LIBS = -lsqlite3
+LIBS = -lsqlite3 -lpthread -ldl -lm
 
 .PHONY: default_target
 default_target: release

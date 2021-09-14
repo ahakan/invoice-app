@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include "sqlite3.h"
+#include "../inc/sqlite3.h"
 #include "../inc/appUser.h"
 #include "../inc/appInvoice.h"
 
