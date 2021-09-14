@@ -109,6 +109,7 @@ int main()
             if( isLogout == 1 )
             {
                 insertLogoutTime(db, UID, getCurrentTime(), oldTime);
+                isLogout = 0;
             }
 
             printf("Enter User Id:");
