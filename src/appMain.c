@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <signal.h>
 #include "../inc/sqlite3.h"
 #include "../inc/appUser.h"
 #include "../inc/appInvoice.h"
@@ -10,17 +11,24 @@
 #define CURRENT_MAX_SIZE 17
 #define CONVERT_CHAR_MAX_SIZE 3
 
+sqlite3 *db;
+char *dbFileName = "upload_system.db";
+
 static char currentTime[CURRENT_MAX_SIZE];
 static char oldTime[CURRENT_MAX_SIZE];
 int UID;
+int isLogin = 0;
 int isLogout = 0;
+int isHandle = 1;
 
 int selectedOperation;
+
 
 void waitFor (unsigned int secs) {
     unsigned int retTime = time(0) + secs;   // Get finishing time.
     while (time(0) < retTime);               // Loop until it arrives.
 }
+
 
 char *getCurrentTime()
 {
@@ -75,27 +83,45 @@ char *getCurrentTime()
 }
 
 
-int main()
+// Connect the DB
+void connectDB()
 {
-    // Connect the DB
-    // -------------------------------- //
-    sqlite3 *db;
-
-    int rc = sqlite3_open("upload_system.db", &db);
-
-    sqlite3_busy_timeout(db, 100);
+    int rc = sqlite3_open(dbFileName, &db);
 
     if( rc )
     {
         printf("Can not open DB.\n");
-        return 0;
+        exit(0);
     }
-    printf("Opened DB successfully\n");
+    // printf("Connected DB successfully\n");
 
-    // -------------------------------- //
+    sqlite3_busy_timeout(db, 100);
+}
 
-    int mainLoop = 1;
-    while( mainLoop )
+
+void handle_sigint(int sig)
+{
+    printf("\n");
+
+    if ( isHandle == 1 )
+        insertLogoutTime(db, UID, getCurrentTime(), oldTime);
+
+    sqlite3_close_v2(db);
+
+    exit(0);
+}
+
+
+int main()
+{
+    signal(SIGINT, handle_sigint);
+    signal(SIGTERM, handle_sigint);
+    signal(SIGQUIT, handle_sigint);
+    signal(SIGKILL, handle_sigint);
+    signal(SIGTSTP, handle_sigint);
+    signal(SIGABRT, handle_sigint);
+
+    while( 1 )
     {
         int loopVariable=1;
 
@@ -108,31 +134,69 @@ int main()
             // If user logged out update LogoutTime
             if( isLogout == 1 )
             {
-                insertLogoutTime(db, UID, getCurrentTime(), oldTime);
-                isLogout = 0;
+                if( insertLogoutTime(db, UID, getCurrentTime(), oldTime) == 1 )
+                {
+                    isLogin = 0;
+                    isLogout = 0;
+                    isHandle = 0;
+
+                    // Close the DB
+                    sqlite3_close_v2(db);
+                }
+                else
+                {
+                    // Connect the DB
+                    connectDB();
+                }
             }
 
-            printf("Enter User Id:");
-            scanf("%d", &id);
-            UID = id;
+            if ( isLogin != 1)
+            {
+                // Enter user id and password
+                printf("Enter User Id:");
+                scanf("%d", &id);
+                UID = id;
 
-            printf("Enter Password:");
-            scanf("%s", password);
+                printf("Enter Password:");
+                scanf("%s", password);
+            }
 
-            // Login
-            int a = login(db, id, password);
+            // Check id and password length
+            if( id > 0 && strlen(password) > 0 )
+            {
+                // Connect the DB
+                connectDB();
+
+                // Login
+                isLogin = login(db, id, password);
+            }
 
             // Delay
             waitFor(2);
 
-            if( a == 1 )
+            // If login success
+            if( isLogin == 1 )
             {
                 // Insert Login time
-                insertLoginTime(db, id, getCurrentTime());
-                snprintf(oldTime, CURRENT_MAX_SIZE, "%s", currentTime);
-                loopVariable = 0;
-            }
+                if( insertLoginTime(db, id, getCurrentTime()) == 1 )
+                {
+                    snprintf(oldTime, CURRENT_MAX_SIZE, "%s", currentTime);
+                    loopVariable = 0;
+                }
+                else
+                {
+                    // Close the DB
+                    sqlite3_close_v2(db);
 
+                    // Connect the DB
+                    connectDB();
+                }
+            }
+            else
+            {
+                // Close the DB
+                sqlite3_close_v2(db);
+            }
         }
 
         while( 1 )
@@ -185,13 +249,14 @@ int main()
                 // Log out
                 isLogout = 1;
                 loopVariable = 1;
+
                 break;
             }
         }
     }
 
     // Close the DB
-    sqlite3_close(db);
+    sqlite3_close_v2(db);
 
     return 0;
 }

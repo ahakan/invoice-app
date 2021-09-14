@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "sqlite3.h"
+#include "../inc/sqlite3.h"
 #include "../inc/appUser.h"
 
 int login(sqlite3 *db, int id, char* password)
@@ -24,6 +24,10 @@ int login(sqlite3 *db, int id, char* password)
     else
     {
         fprintf(stderr, "Failed to execute statement: %s\n", sqlite3_errmsg(db));
+
+        sqlite3_finalize(res);
+
+        return 0;
     }
 
     int step = sqlite3_step(res);
@@ -52,7 +56,7 @@ int login(sqlite3 *db, int id, char* password)
 }
 
 
-void insertLoginTime(sqlite3 *db, int UID, char *currentTime)
+int insertLoginTime(sqlite3 *db, int UID, char *currentTime)
 {
     char *sql;
     sqlite3_stmt *res;
@@ -72,18 +76,29 @@ void insertLoginTime(sqlite3 *db, int UID, char *currentTime)
     else
     {
         fprintf(stderr, "Failed to execute statement: %s\n", sqlite3_errmsg(db));
+
+        sqlite3_finalize(res);
+
+        return 0;
     }
 
     rc = sqlite3_step(res);
 
-    if ( rc != SQLITE_DONE ) {
-        printf("SQL query error! Code: %d\n", rc);
+    if ( rc != SQLITE_DONE )
+    {
+        fprintf(stderr, "Failed to execute statement: %s\n", sqlite3_errmsg(db));
+
+        sqlite3_finalize(res);
+
+        return 0;
     }
 
     sqlite3_finalize(res);
+
+    return 1;
 }
 
-void insertLogoutTime(sqlite3 *db, int UID, char *currentTime, char *loginTime)
+int insertLogoutTime(sqlite3 *db, int UID, char *currentTime, char *loginTime)
 {
     char *sql;
     sqlite3_stmt *res;
@@ -104,6 +119,10 @@ void insertLogoutTime(sqlite3 *db, int UID, char *currentTime, char *loginTime)
     else
     {
         fprintf(stderr, "Failed to execute statement: %s\n", sqlite3_errmsg(db));
+
+        sqlite3_finalize(res);
+
+        return 0;
     }
 
     int step = sqlite3_step(res);
@@ -130,11 +149,26 @@ void insertLogoutTime(sqlite3 *db, int UID, char *currentTime, char *loginTime)
         else
         {
             fprintf(stderr, "Failed to execute statement: %s\n", sqlite3_errmsg(db));
+
+            sqlite3_finalize(res);
+
+            return 0;
         }
 
-        int step = sqlite3_step(res);
+        rc = sqlite3_step(res);
+
+        if ( rc != SQLITE_DONE )
+        {
+            fprintf(stderr, "Failed to execute statement: %s\n", sqlite3_errmsg(db));
+
+            sqlite3_finalize(res);
+
+            return 0;
+        }
     }
 
     sqlite3_finalize(res);
+
+    return 1;
 
 }

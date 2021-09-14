@@ -23,7 +23,7 @@ DEPS = $(OBJECTS:.o=.d)
 
 # flags #
 COMPILE_FLAGS =
-INCLUDES = -I /usr/include
+INCLUDES =
 # Space-separated pkg-config libraries used by this project
 LIBS = -lpthread -ldl -lm
 
