@@ -216,8 +216,6 @@ int main()
                     // Scan directory
                     scanDir();
 
-                    printf("n - Press ESC to return main menu\n");
-
                     char ch;
 
                     scanf("%s", &ch);

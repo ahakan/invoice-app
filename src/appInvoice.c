@@ -52,7 +52,8 @@ void scanDir()
             i++;
             // free(namelist[n]);
         }
-        printf("\n");
+        printf("%d - Press ESC to return main menu\n", i);
+
         // free(namelist);
     }
 }
